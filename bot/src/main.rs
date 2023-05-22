@@ -7,7 +7,7 @@ use eyre::Result;
 
 use fern::colors::{Color, ColoredLevelConfig};
 
-use rusty_sando::{
+use rusty::{
     prelude::{sync_dex, Dex, PoolVariant},
     runner::Bot,
     utils::{self, dotenv::read_env_vars},
