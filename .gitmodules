@@ -17,8 +17,6 @@
 [submodule "contract/lib/foundry-huff"]
 	path = contract/lib/foundry-huff
 	url = https://github.com/huff-language/foundry-huff
-[submodule "lib/forge-std"]
-	branch = v1.5.2
 [submodule "contract/lib/v3-core"]
 	path = contract/lib/v3-core
 	url = https://github.com/Uniswap/v3-core
