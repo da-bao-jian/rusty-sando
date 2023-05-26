@@ -92,3 +92,16 @@ impl Hash for Pool {
         self.address.hash(state);
     }
 }
+
+impl Default for Pool {
+    fn default() -> Self {
+        Pool {
+            address: Address::zero(),
+            token_0: Address::zero(),
+            token_1: Address::zero(),
+            swap_fee: U256::zero(),
+            pool_variant: PoolVariant::UniswapV2,
+            pool_type: PoolType::UniswapV2(pool::UniswapV2Pool::default()),
+        }
+    }
+}
