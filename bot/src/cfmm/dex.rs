@@ -29,10 +29,10 @@ impl Dex {
     }
 
     // Parse logs and extract pools
-    pub fn new_pool_from_event(&self, log: Log, provider: Arc<Provider<Ws>>) -> Option<Pool> {
+    pub async fn new_pool_from_event(&self, log: Log, provider: Arc<Provider<Ws>>) -> Option<Pool> {
         match self.pool_variant {
             PoolVariant::UniswapV2 => {
-                let uniswap_v2_factory = UniswapV2Factory::new(self.factory_address, provider);
+                let uniswap_v2_factory = UniswapV2Factory::new(self.factory_address, provider.clone());
                 let (token_0, token_1, address, _) = if let Ok(pair) = uniswap_v2_factory
                     .decode_event::<(Address, Address, Address, U256)>(
                         "PairCreated",
@@ -49,16 +49,24 @@ impl Dex {
                     return None;
                 }
 
-                Some(Pool::new(
+                let _pool = Pool::new(
+                    provider.clone(),
                     address,
                     token_0,
                     token_1,
                     U256::from(3000),
                     PoolVariant::UniswapV2,
-                ))
+                )
+                .await;
+                if let Some(pool) = _pool {
+                    Some(pool)
+                } else {
+                    None
+                }
             }
+
             PoolVariant::UniswapV3 => {
-                let uniswap_v3_factory = UniswapV3Factory::new(self.factory_address, provider);
+                let uniswap_v3_factory = UniswapV3Factory::new(self.factory_address, provider.clone());
 
                 let (token_0, token_1, fee, _, address) = if let Ok(pool) = uniswap_v3_factory
                     .decode_event::<(Address, Address, u32, u128, Address)>(
@@ -76,13 +84,21 @@ impl Dex {
                     return None;
                 }
 
-                Some(Pool::new(
+                let _pool = Pool::new(
+                    provider.clone(),
                     address,
                     token_0,
                     token_1,
                     U256::from(fee),
                     PoolVariant::UniswapV3,
-                ))
+                )
+                .await;
+
+                if let Some(pool) = _pool {
+                    Some(pool)
+                } else {
+                    None
+                }
             }
         }
     }
@@ -202,7 +218,7 @@ async fn get_all_pools(
 
             // for each pair created log, create a new Pair type and add it to the pairs vec
             for log in logs {
-                match dex.new_pool_from_event(log, provider.clone()) {
+                match dex.new_pool_from_event(log, provider.clone()).await {
                     Some(pool) => pools.push(pool),
                     None => continue,
                 }

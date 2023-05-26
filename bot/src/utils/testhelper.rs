@@ -47,12 +47,13 @@ pub async fn create_v2_pool(pool_address: Address, client: &Arc<Provider<Ws>>) -
     let token_1 = pool_contract.token_1().call().await.unwrap();
 
     Pool::new(
+        client.clone(),
         pool_address,
         token_0,
         token_1,
         U256::from(3000),
         PoolVariant::UniswapV2,
-    )
+    ).await.unwrap()
 }
 
 pub async fn create_v3_pool(pool_address: Address, client: &Arc<Provider<Ws>>) -> Pool {
@@ -63,12 +64,13 @@ pub async fn create_v3_pool(pool_address: Address, client: &Arc<Provider<Ws>>) -
     let fee = pool.fee().call().await.unwrap();
 
     Pool::new(
+        client.clone(),
         pool_address,
         token_0,
         token_1,
         U256::from(fee),
         PoolVariant::UniswapV3,
-    )
+    ).await.unwrap()
 }
 
 /// Override an address's weth balance

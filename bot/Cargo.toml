@@ -13,6 +13,7 @@ authors = ["0xmouseless <https://github.com/mouseless-eth>"]
 [dependencies]
 ethers-flashbots = { git = "https://github.com/onbjerg/ethers-flashbots" }
 ethers = {version = "2.0.0", features = ["abigen", "ws"]}
+cfmms = { git = "https://github.com/da-bao-jian/cfmms-rs", branch="main" }
 revm = {version = "3.0.0", features = ["ethersdb", "serde", "std"]}
 dotenv = "0.15.0"
 hashbrown = "0.13.2"
