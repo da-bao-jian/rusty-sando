@@ -13,13 +13,13 @@ use ethers::prelude::*;
 use eyre::Result;
 use log;
 
-mod oracles;
+pub mod oracles;
 use tokio::sync::RwLock;
 
-mod state;
+pub mod state;
 use state::BotState;
 
-mod bundle_sender;
+pub mod bundle_sender;
 use bundle_sender::*;
 
 pub struct Bot {
