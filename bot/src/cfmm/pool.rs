@@ -74,6 +74,17 @@ impl Pool {
         }
     }
 
+    pub fn default() -> Pool {
+        Pool {
+            address: Address::zero(),
+            token_0: Address::zero(),
+            token_1: Address::zero(),
+            swap_fee: U256::zero(),
+            pool_variant: PoolVariant::UniswapV2,
+            pool_type: PoolType::UniswapV2(pool::UniswapV2Pool::default()),
+        }
+    }
+
 
     pub fn from(address: &Address, token_0: &Address, token_1: &Address, swap_fee: &U256, pool_variant: &PoolVariant, pool_type: &PoolType) -> Pool {
         Pool {
