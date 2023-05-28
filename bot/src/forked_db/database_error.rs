@@ -1,5 +1,8 @@
 use futures::channel::mpsc::{SendError, TrySendError};
 use std::sync::{mpsc::RecvError, Arc};
+use ethers::{
+    types::BlockId
+};
 
 // Errors that can happen when working with [`revm::Database`]
 #[derive(Debug, thiserror::Error)]
@@ -24,6 +27,10 @@ pub enum DatabaseError {
     ),
     #[error("Failed to get block hash for {0}: {1:?}")]
     GetBlockHash(revm::primitives::U256, Arc<eyre::Error>),
+    #[error("Block {0:?} does not exist")]
+    BlockNotFound(BlockId),
+    #[error("Failed to get full block for {0:?}: {1:?}")]
+    GetFullBlock(BlockId, Arc<eyre::Error>),
 }
 
 impl<T> From<TrySendError<T>> for DatabaseError {

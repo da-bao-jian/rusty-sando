@@ -2,7 +2,7 @@
 // https://github.com/foundry-rs/foundry/blob/master/evm/src/executor/fork/backend.rs
 use ethers::{
     providers::{Middleware, Provider, ProviderError, Ws},
-    types::{Address, BigEndianHash, BlockId, H256, U256},
+    types::{Address, Block, Transaction, BigEndianHash, BlockId, H256, U256},
     utils::keccak256,
 };
 use eyre::Result;
@@ -38,12 +38,22 @@ type BasicFuture<Err> =
 type StorageFuture<Err> =
     Pin<Box<dyn Future<Output = (Result<rU256, Err>, rAddress, rU256)> + Send>>;
 type BlockHashFuture<Err> = Pin<Box<dyn Future<Output = (Result<B256, Err>, rU256)> + Send>>;
+type FullBlockSender = OneshotSender<DatabaseResult<Block<Transaction>>>;
+
+
+type FullBlockFuture<Err> = Pin<
+    Box<
+        dyn Future<Output = (FullBlockSender, Result<Option<Block<Transaction>>, Err>, BlockId)>
+            + Send,
+    >,
+>;
 
 /// Request variants that are executed by the provider
 enum FetchRequestFuture<Err> {
     Basic(BasicFuture<Err>),
     Storage(StorageFuture<Err>),
     BlockHash(BlockHashFuture<Err>),
+    FullBlock(FullBlockFuture<Err>),
 }
 
 /// The Request type the Backend listens for
@@ -55,6 +65,8 @@ pub enum BackendFetchRequest {
     Storage(rAddress, rU256, StorageSender),
     /// Fetch a block hash
     BlockHash(rU256, BlockHashSender),
+    /// Fetch an entire block with transactions
+    FullBlock(BlockId, FullBlockSender),
 }
 
 /// Holds db and provdier_db to fallback on so that
@@ -136,8 +148,22 @@ impl GlobalBackend {
                     self.request_hash(number, sender);
                 }
             }
+            BackendFetchRequest::FullBlock(number, sender) => {
+                self.request_full_block(number, sender);
+            }
         }
     }
+
+    fn request_full_block(&mut self, number: BlockId, sender: FullBlockSender) {
+        let provider = self.provider.clone();
+        let fut = Box::pin(async move {
+            let block = provider.get_block_with_txs(number).await;
+            (sender, block, number)
+        });
+
+        self.pending_requests.push(FetchRequestFuture::FullBlock(fut));
+    }
+
 
     /// process a request for an account
     fn request_account(&mut self, address: rAddress, listener: AccountInfoSender) {
@@ -368,6 +394,20 @@ impl Future for GlobalBackend {
                                 })
                             }
                             continue;
+                        }
+                    }
+                    FetchRequestFuture::FullBlock(fut) => {
+                        if let Poll::Ready((sender, resp, number)) = fut.poll_unpin(cx) {
+                            let msg = match resp {
+                                Ok(Some(block)) => Ok(block),
+                                Ok(None) => Err(DatabaseError::BlockNotFound(number)),
+                                Err(err) => {
+                                    let err = Arc::new(eyre::Error::new(err));
+                                    Err(DatabaseError::GetFullBlock(number, err))
+                                }
+                            };
+                            let _ = sender.send(msg);
+                            continue
                         }
                     }
                 }

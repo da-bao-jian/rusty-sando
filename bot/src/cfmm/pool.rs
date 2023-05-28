@@ -85,7 +85,6 @@ impl Pool {
         }
     }
 
-
     pub fn from(address: &Address, token_0: &Address, token_1: &Address, swap_fee: &U256, pool_variant: &PoolVariant, pool_type: &PoolType) -> Pool {
         Pool {
             address: *address,
