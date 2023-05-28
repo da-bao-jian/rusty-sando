@@ -7,11 +7,13 @@ use super::{
     global_backend::{BackendFetchRequest, GlobalBackend},
 };
 use ethers::prelude::*;
-use ethers::types::BlockId;
 use futures::channel::mpsc::{channel, Sender};
 use revm::{
     db::{CacheDB, EmptyDB},
     primitives::{AccountInfo, Address as rAddress, U256 as rU256},
+};
+use ethers::{
+    types::{Block,BlockId, Transaction},
 };
 
 /// Type that setups up backend and clients to talk to backend
@@ -58,6 +60,15 @@ impl ForkFactory {
             rx.recv()?.map(Some)
         })
     }
+    
+    fn do_get_full_block(&self, number: BlockId) -> DatabaseResult<Block<Transaction>> {
+        tokio::task::block_in_place(|| {
+            let (sender, rx) = oneshot_channel();
+            let req = BackendFetchRequest::FullBlock(number, sender);
+            self.backend.clone().try_send(req)?;
+            rx.recv()?
+        })
+    }
 
     // Create a new sandbox environment with backend running on own thread
     pub fn new_sandbox_factory(
@@ -87,6 +98,15 @@ impl ForkFactory {
     // Creates new ForkDB that fallsback on this `ForkFactory` instance
     pub fn new_sandbox_fork(&self) -> ForkDB {
         ForkDB::new(self.backend.clone(), self.initial_db.clone())
+    }
+
+    pub fn get_full_block(&self, number: BlockId) -> DatabaseResult<Block<Transaction>> {
+        let block = match self.do_get_full_block(number) {
+            Ok(b) => b,
+            Err(e) => return Err(e),
+        };
+
+        Ok(block)
     }
 
     // Insert storage into local db
