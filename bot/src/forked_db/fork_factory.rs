@@ -70,6 +70,15 @@ impl ForkFactory {
         })
     }
 
+    fn do_update_db(&self, db: CacheDB<EmptyDB>) -> DatabaseResult<()> {
+        tokio::task::block_in_place(|| {
+            let (_, rx) = oneshot_channel();
+            let req = BackendFetchRequest::UpdateDB(db);
+            self.backend.clone().try_send(req)?;
+            rx.recv()?
+        })
+    }
+
     // Create a new sandbox environment with backend running on own thread
     pub fn new_sandbox_factory(
         provider: Arc<Provider<Ws>>,
@@ -93,6 +102,13 @@ impl ForkFactory {
             .expect("failed to spawn backendhandler thread");
 
         shared
+    }
+
+
+    // call everytime there's a new search to update the db for factory and backend
+    pub fn update_db(&mut self, db: CacheDB<EmptyDB>) {
+        self.initial_db = db.clone();
+        self.do_update_db(db).unwrap();
     }
 
     // Creates new ForkDB that fallsback on this `ForkFactory` instance

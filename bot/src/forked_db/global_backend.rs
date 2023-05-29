@@ -67,6 +67,8 @@ pub enum BackendFetchRequest {
     BlockHash(rU256, BlockHashSender),
     /// Fetch an entire block with transactions
     FullBlock(BlockId, FullBlockSender),
+    /// Update the database
+    UpdateDB(CacheDB<EmptyDB>),
 }
 
 /// Holds db and provdier_db to fallback on so that
@@ -111,6 +113,7 @@ impl GlobalBackend {
         }
     }
 
+
     /// handle the request in queue in the future.
     ///
     /// We always check:
@@ -151,7 +154,14 @@ impl GlobalBackend {
             BackendFetchRequest::FullBlock(number, sender) => {
                 self.request_full_block(number, sender);
             }
+            BackendFetchRequest::UpdateDB(db) => {
+                self.update_db(db);
+            }
         }
+    }
+
+    fn update_db(self: &mut Self, db: CacheDB<EmptyDB>) {
+        self.db = db;
     }
 
     fn request_full_block(&mut self, number: BlockId, sender: FullBlockSender) {
